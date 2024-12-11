@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # Configuración de variables globales
 ALLOWED_CHARS_PUNS = string.ascii_letters + " " + string.digits + "áéíóúàèìòùäëïöü"
 ALLOWED_CHARS_TRIGGERS = ALLOWED_CHARS_PUNS + "^$.*+?(){}\\[]<>=-"
-VERSION = "0.0.1"
+VERSION = "0.0.2"
 REQUIRED_VALIDATIONS = 5
 load_dotenv()
 
@@ -96,9 +96,13 @@ def find_pun(message: types.Message, dbfile: str):
         triggers = cursor.execute(
             '''SELECT trigger, pun FROM puns WHERE chatid = ? OR chatid = 0''', (message.chat.id,)
         ).fetchall()
+        message_text = message.text.strip()  # Remueve espacios adicionales alrededor del texto
         for trigger, pun in triggers:
-            if is_valid_regex(trigger) and re.search(trigger, message.text):
-                return pun
+            if is_valid_regex(trigger):
+                # Requiere que el patrón coincida SOLO si está al final
+                pattern = rf"{trigger}$"
+                if re.search(pattern, message_text):  # Busca solo si 'trigger' está al final
+                    return pun
     return None
 
 @bot.message_handler(commands=['help'])
